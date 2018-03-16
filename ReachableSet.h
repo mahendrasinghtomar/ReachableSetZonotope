@@ -1,17 +1,6 @@
-// 16 March 18
-//  ReachableSet4.h
-//  MST16fromMST15
-//
-//  Created by FMLAB4 on 15.03.18.
-//  Copyright © 2018 FMLAB4. All rights reserved.
-//
-
 #ifndef ReachableSet_h
 #define ReachableSet_h
 
-
-//  main.cpp
-//  MST10ReachableSetCartpole
 //
 //  Created by FMLAB4 on 28.11.17.
 //  Copyright © 2017 FMLAB4. All rights reserved.
@@ -33,7 +22,6 @@
 
 extern Eigen::VectorXd L_hat_previous;  // abstraction.hh: compute_gb2
 
-//--------
 namespace mstom {
     
     template<class T>
@@ -74,7 +62,6 @@ namespace mstom {
                 eta(i) = etat[i];
             }
             centre = c;
-            //int dim = (int) eta.rows();
             generators = Eigen::MatrixXd::Zero(dim,dim);
             for (int i=0; i<dim; i++){
                 generators(i,i) = eta(i)/2;
@@ -124,15 +111,7 @@ namespace mstom {
             Ztemp.generators = generators * a;
             return Ztemp;
         }
-        
-        //        zonotope operator * (MatrixXd M){
-        //            //zonotope * matrix
-        //            zonotope Ztemp;
-        //            Ztemp.centre = M * centre;    // be careful of multiplication order
-        //            Ztemp.generators = M * generators;
-        //            return Ztemp;
-        //        }
-        
+         
         void display(){
             int r = generators.rows();
             int gc = generators.cols();
@@ -270,17 +249,12 @@ namespace mstom {
     }
     
     double compute_epsilon(const Eigen::MatrixXd& A, const double& r, int& p){
-        //        double norm_rA = normA(r*A);
-        double norm_rA = (r*A).cwiseAbs().rowwise().sum().maxCoeff();    // edited 15 Jan18
-        double epsilone = norm_rA/(p+2);    // edited
-        //cout << "\np "<< p << endl;
-        //cout << "epsilone "<< epsilone << endl;
+        double norm_rA = (r*A).cwiseAbs().rowwise().sum().maxCoeff();    
+        double epsilone = norm_rA/(p+2);    
         while (epsilone >= 1){
             p += 1;
             epsilone = norm_rA/(p+2);
-            //cout << "\np "<< p << endl;
-            //cout << "epsilone "<< epsilone << endl;
-        }
+         }
         
         
         return epsilone;
@@ -292,11 +266,10 @@ namespace mstom {
         double norm_rA = rA.cwiseAbs().rowwise().sum().maxCoeff();
         double temp = pow(norm_rA,p+1) / factorial(p+1);
         double bound = temp / (1-epsilone);
-        while(bound > pow(10,-5))   // <-----------
+        while(bound > pow(10,-5))  
         {
             p++;
             epsilone = norm_rA/(p+2);
-            //bound = (pow(normA(rA),p+1) / (factorial(p+1) * (1-epsilone)));
             temp = temp * norm_rA / (p+1);
             bound = temp / (1-epsilone);
         }
@@ -313,7 +286,6 @@ namespace mstom {
                 for(int k=0;k<n;k++)
                 {
                     temp += M1[i*n+k] * M2[k*q+j];
-                    //                    std::cout << "\nM1, M2= " << M1[i*n+k] << ", "<< M2[k*q+j] << std::endl;
                 }
                 Mresult[i*q+j] = temp;
             }
@@ -330,16 +302,12 @@ namespace mstom {
         // (p+1) terms truncation; result is an Interval Matrix
         // p, epsilone: may be altered
         int state_dim = A.rows();
-        //        Eigen::MatrixXd rA = r * A;
         intervalMatrix Mitemp;
         Mitemp.lb = Eigen::MatrixXd::Constant(state_dim,state_dim,-1);
         Mitemp.ub = Eigen::MatrixXd::Constant(state_dim,state_dim,1);
         
         Mitemp = Mitemp * bound; // E(r)
         Er = Mitemp;
-        //cout << "\n\nE(r).lb(0,0)= "<< Mitemp.lb(0,0) << endl;
-        
-        //        Eigen::MatrixXd Btemp = Eigen::MatrixXd::Zero(rA.rows(),rA.cols());
         double Btemp[state_dim*state_dim];
         double Btemp2[state_dim*state_dim] ;
         double Btemp3[state_dim*state_dim];
@@ -365,9 +333,7 @@ namespace mstom {
         BtempPointer3 = Btemp3;
         for (int i=2; i<=p; i++)
         {
-            //                Ar_powers_fac.push_back(rA.pow(i)/factorial(i));
-            //                Btemp += Ar_powers_fac[i];
-            
+             
             matrix_product(&Ar_powers_fac[state_dim*state_dim], BtempPointer2, BtempPointer3, state_dim, state_dim, state_dim); // pow(rA,i) in Btemp3
             fac = fac * i;
             swapPointer = BtempPointer2;
@@ -380,18 +346,7 @@ namespace mstom {
                     Btemp[ii*state_dim + jj] = Btemp[ii*state_dim + jj] + Ar_powers_fac[i*state_dim*state_dim + ii*state_dim + jj];
                 }
         }
-        
-        //        for(int i=0;i<=p;i++){
-        //            std::cout << "Ar_powers_fac \n";
-        //            for(int ii=0;ii<state_dim;ii++){
-        //                for(int jj=0;jj<state_dim;jj++)
-        //                    std::cout <<  Ar_powers_fac[i*state_dim*state_dim+ii*state_dim+jj] << " ";
-        //                std::cout << std::endl;
-        //            }
-        //        }
-        
-        //        Mitemp = Mitemp + Btemp;
-        for(int i=0;i<state_dim;i++)
+         for(int i=0;i<state_dim;i++)
             for(int j=0;j<state_dim;j++)
             {
                 Mitemp.lb(i,j) = Mitemp.lb(i,j) + Btemp[i*state_dim + j];
@@ -407,11 +362,7 @@ namespace mstom {
         Ftemp.lb = Eigen::MatrixXd::Zero(state_dim, state_dim);
         Eigen::MatrixXd temp(state_dim,state_dim);
         for (int i=2; i<=p; i++){
-            //Ftemp.lb += (pow(i,-i/(i-1)) - pow(i,-1/(i-1))) * pow(r,i) * A.pow(i) / factorial(i);
-            //            temp = (pow(i,-i/(i-1)) - pow(i,-1/(i-1))) * pow(r,i) * A.pow(i) / factorial(i);
-            
-            //            temp = (pow(i,-i/(i-1)) - pow(i,-1/(i-1))) * Ar_powers_fac[i];
-            double data = (pow(i,-i/(i-1)) - pow(i,-1/(i-1)));
+              double data = (pow(i,-i/(i-1)) - pow(i,-1/(i-1)));
             for(int i2=0;i2<state_dim;i2++)
                 for(int j=0;j<state_dim;j++)
                     temp(i2,j) = data * Ar_powers_fac[i*state_dim*state_dim + i2*state_dim + j];
@@ -438,8 +389,7 @@ namespace mstom {
         {
             Eigen::MatrixXd temp(state_dim,state_dim);
             for (int i=2; i<=p; i++){
-                //                 temp = (pow(i,-i/(i-1)) - pow(i,-1/(i-1))) * Ar_powers_fac[i-1] * r / i;
-                double data = (pow(i,-i/(i-1)) - pow(i,-1/(i-1)));
+                   double data = (pow(i,-i/(i-1)) - pow(i,-1/(i-1)));
                 for(int i2=0;i2<state_dim;i2++)
                     for(int j=0;j<state_dim;j++)
                         temp(i2,j) = data * Ar_powers_fac[(i-1)*state_dim*state_dim + i2*state_dim + j] * r / i;
@@ -453,25 +403,19 @@ namespace mstom {
                     }
                 }
             }
-            Eigen::VectorXd temp2 = A.cwiseAbs().rowwise().sum();  // edited 06 Jan
+            Eigen::VectorXd temp2 = A.cwiseAbs().rowwise().sum();  
             Ftemp = Ftemp + Er * pow(temp2.maxCoeff(),-1);
         }
-        //        VectorXd temp2 = A.cwiseAbs().colwise().sum();
-        return Ftemp;
+         return Ftemp;
     }
     
     intervalMatrix compute_Data_interm(intervalMatrix Er, double r, int p, Eigen::MatrixXd& A, double Ar_powers_fac[]){
         int state_dim = A.rows();
         Eigen::MatrixXd Mtemp = Eigen::MatrixXd::Zero(state_dim,state_dim);
         for (int i=0; i<=p; i++){
-            //            Mtemp += (A.pow(i) * pow(r,i+1) / (factorial(i) * (i+1)));
-            //            Mtemp += Ar_powers_fac[i] * r / (i+1);
-            
             for(int i2=0;i2<state_dim;i2++)
                 for(int j=0;j<state_dim;j++)
                     Mtemp(i2,j) = Mtemp(i2,j) + Ar_powers_fac[i*state_dim*state_dim + i2*state_dim + j] * r / (i+1);
-            
-            
         }
         intervalMatrix Mintv = Er;
         Mintv = Mintv * r;  // r*E(r)
@@ -630,7 +574,6 @@ namespace mstom {
         Eigen::Matrix2d temp2;
         temp2 << 0, 1, -1, 0;
         temp = temp2 * temp;    // perpendicular vectors
-        //MatrixXd Ma(3,n);   // 3rd column stores d
         Eigen::VectorXd Ma(n);
         for(int i=0;i<n;i++)
         {
@@ -638,15 +581,11 @@ namespace mstom {
             int j = ((i+n/2)< n)? (i+n/2) : (i+n/2-n);
             if(temp.col(i).transpose() * v.col(j) < dd)
             {
-                // Ma.col(i).head(2) = temp.col(i);
-                //Ma(2,i) = dd;
-                Ma(i) = dd;
+                  Ma(i) = dd;
             }
             else
             {
-                //                Ma.col(i).head(2) = -temp.col(i);
-                //                Ma(2,i) = -dd;
-                Ma(i) = -dd;
+                  Ma(i) = -dd;
             }
         }
         M = Ma;
@@ -746,14 +685,9 @@ namespace mstom {
     
 } // end namespace mstom
 
-//--------
 //#############################################################################
 // Derivative Hessian
 
-//--------
-
-//template<typename Tx, typename Tu>
-//Tx* funcLj_system(Tx x[], Tu u[], Tx xx[]);
 
 template<typename Tx, typename Tu>
 Tx funcLj_system(Tx x, Tu u, Tx xx);
@@ -805,8 +739,6 @@ void computeJacobian_Lu_array2(vnodelp::interval xin[], Fu u[], const int dim, i
     B<vnodelp::interval> xx[dim];
     for(int i=0;i<dim;i++)
         x[i] = xin[i];
-    //   for(int i=0;i<dim;i++)
-    //        x[i].diff(i,dim); // differentiate w.r.t x[i]
     f = funcLj_system(x, u, xx);  // evaluate function and derivatives
     for(int i=0;i<dim;i++)
         f[i].diff(i,dim);
@@ -823,12 +755,8 @@ void computeJacobian_Lu_array2(vnodelp::interval xin[], Fu u[], const int dim, i
 template<typename T2>
 void compute_J_abs_max(const mstom::intervalMatrix& iM, Eigen::MatrixXd J_abs_max[], T2 u)
 {
-    int nm = iM.lb.rows(); // state_dimension <-----------------
+    int nm = iM.lb.rows(); 
     vnodelp::interval d2f;
-    //    for(int i=0;i<nm;i++)
-    //    {
-    //        cout<< "x: \n"<< interval(iM.lb(i,0), iM.ub(i,0)) << "\n";
-    //         cout << "i "<< i<< endl;
     B<F<vnodelp::interval>>* f;
     B<F<vnodelp::interval>> x[nm], xx[nm];
     for(int j=0;j<nm;j++)
@@ -841,7 +769,6 @@ void compute_J_abs_max(const mstom::intervalMatrix& iM, Eigen::MatrixXd J_abs_ma
         f[i].diff(i,nm);
     
     Eigen::MatrixXd M(nm,nm);
-    //    int indexa = 0;
     for(int i=0;i<nm;i++)
     {
         for(int j=0;j<nm;j++)
@@ -849,8 +776,7 @@ void compute_J_abs_max(const mstom::intervalMatrix& iM, Eigen::MatrixXd J_abs_ma
             {
                 d2f = x[j].d(i).d(k);
                 M(j,k) = vnodelp::mag(d2f);
-                //                indexa++;
-            }
+              }
         J_abs_max[i] = M;
     }
 }
@@ -861,8 +787,7 @@ void compute_H(const mstom::intervalMatrix& iM, std::vector<vnodelp::iMatrix>& H
     vnodelp::interval d2f;
     B<F<vnodelp::interval>>* f;
     B<F<vnodelp::interval>> x[nm], xx[nm];
-    //        std::vector<B<F<vnodelp::interval>>> x(nm);
-    for(int j=0;j<nm;j++)
+     for(int j=0;j<nm;j++)
     {
         x[j] = vnodelp::interval(iM.lb(j,0), iM.ub(j,0));
         x[j].x().diff(j,nm);
@@ -873,7 +798,6 @@ void compute_H(const mstom::intervalMatrix& iM, std::vector<vnodelp::iMatrix>& H
     
     vnodelp::iMatrix M;
     vnodelp::sizeM(M,nm);
-    //    int indexa = 0;
     for(int i=0;i<nm;i++)
     {
         for(int j=0;j<nm;j++)
@@ -881,8 +805,7 @@ void compute_H(const mstom::intervalMatrix& iM, std::vector<vnodelp::iMatrix>& H
             {
                 d2f = x[j].d(i).d(k);
                 M[j][k] = (d2f);
-                //                indexa++;
-            }
+             }
         H.push_back(M);
     }
 }
@@ -947,10 +870,6 @@ Eigen::VectorXd maxAbs(mstom::intervalMatrix IH){
 extern int ZorDeltaZ;
 
 Eigen::VectorXd compute_L_Hat1(mstom::zonotope Rtotal1, Eigen::VectorXd x_bar, int state_dim, Eigen::VectorXd uin){
-    //    int dimInput = uin.rows();
-    //    double u[dimInput];
-    //    for(int i=0;i<dimInput;i++)
-    //        u[i] = uin(i);
     mstom::intervalMatrix RIH = mstom::IntervalHull(Rtotal1);
     Eigen::VectorXd L_hat(state_dim);
     {
@@ -960,13 +879,11 @@ Eigen::VectorXd compute_L_Hat1(mstom::zonotope Rtotal1, Eigen::VectorXd x_bar, i
         else
             Gamma = (Rtotal1.centre).cwiseAbs() + Rtotal1.generators.cwiseAbs().rowwise().sum();
         
-        Eigen::MatrixXd J_abs_max[state_dim]; //<-----------
-        compute_J_abs_max(RIH, J_abs_max, uin);  //<----------
-        //cout <<endl << J_abs_max1 << endl << endl << J_abs_max2 << endl << endl << J_abs_max3<< endl;
-        
+        Eigen::MatrixXd J_abs_max[state_dim]; 
+        compute_J_abs_max(RIH, J_abs_max, uin); 
         for(int i=0; i<state_dim;i++)
         {
-            L_hat(i) = 0.5 * Gamma.transpose() * J_abs_max[i] * Gamma;    //<--------------------------
+            L_hat(i) = 0.5 * Gamma.transpose() * J_abs_max[i] * Gamma;    
         }
     }
     return L_hat;
@@ -974,11 +891,7 @@ Eigen::VectorXd compute_L_Hat1(mstom::zonotope Rtotal1, Eigen::VectorXd x_bar, i
 
 Eigen::VectorXd compute_L_Hat3(std::vector<vnodelp::interval> Kprime, std::vector<vnodelp::interval> uin){
     // global L_hat computation
-    //    int dimInput = uin.size();
-    //    vnodelp::interval u[dimInput];
-    //    for(int i=0;i<dimInput;i++)
-    //        u[i] = uin[i];
-    int dim = Kprime.size();
+     int dim = Kprime.size();
     Eigen::VectorXd L_hat(dim);
     {
         
@@ -996,14 +909,11 @@ Eigen::VectorXd compute_L_Hat3(std::vector<vnodelp::interval> Kprime, std::vecto
         std::cout << "(RIH.ub-RIH.lb)*0.5\n "<< (RIH.ub-RIH.lb)*0.5 << endl;
         Eigen::VectorXd Gamma;
         Gamma = (0.5 * (ub-lb)) + Z.generators.cwiseAbs().rowwise().sum();
-        //            Gamma = (Rtotal1.centre).cwiseAbs() + Rtotal1.generators.cwiseAbs().rowwise().sum();
         Eigen::MatrixXd J_abs_max[dim]; //<-----------
         compute_J_abs_max(RIH, J_abs_max, uin);  //<----------
-        //cout <<endl << J_abs_max1 << endl << endl << J_abs_max2 << endl << endl << J_abs_max3<< endl;
-        
         for(int i=0; i<dim;i++)
         {
-            L_hat(i) = 0.5 * Gamma.transpose() * J_abs_max[i] * Gamma;    //<--------------------------
+            L_hat(i) = 0.5 * Gamma.transpose() * J_abs_max[i] * Gamma;    
         }
         
     }
@@ -1052,8 +962,6 @@ Eigen::VectorXd compute_L_Hat2(mstom::zonotope Rtotal1, Eigen::VectorXd x_bar, i
 
 mstom::zonotope compute_Rerr_bar(int state_dim, mstom::intervalMatrix& Data_interm, mstom::zonotope& Rhomt, Eigen::VectorXd x_bar, Eigen::VectorXd f_bar, Eigen::VectorXd u, Eigen::VectorXd& L_hat, int LinErrorMethod, mstom::zonotope& F_tilde_f_bar){
     mstom::zonotope Rhom;
-    //    VectorXd appliedError = MatrixXd::Constant(state_dim,1,pow(10,-1));// <-------------
-    //    Eigen::VectorXd appliedError = Eigen::MatrixXd::Constant(state_dim,1,0);// <-----------------
     Eigen::VectorXd appliedError = L_hat_previous;  // 06 March 18
     
     mstom::zonotope Verror, RerrAE, Rtotal1;
@@ -1067,18 +975,13 @@ mstom::zonotope compute_Rerr_bar(int state_dim, mstom::intervalMatrix& Data_inte
             Rhom = Rhom + F_tilde_f_bar;    // when f_bar + [-L,L] does not contain origin
         Verror.generators = Eigen::MatrixXd(appliedError.asDiagonal());
         RerrAE = Data_interm * Verror;
-        //        Rtotal1 = mstom::deletezeros(RerrAE + Rhom);
         Rtotal1 = (RerrAE + Rhom);
-        //        plot(Rtotal1, 1, 2);
-        if(LinErrorMethod == 1)
+         if(LinErrorMethod == 1)
             trueError = compute_L_Hat1(Rtotal1, x_bar, state_dim,u);
         else
             trueError = compute_L_Hat2(Rtotal1, x_bar, state_dim,u);
-        //cout << "trueError \n" << trueError << endl;
         perfIndCurr = (trueError.cwiseProduct(appliedError.cwiseInverse())).maxCoeff(); // max(trueError./appliedError)
-        appliedError = 1.1 * trueError;   //Error increment method 1 <---------------
-        //        appliedError = ((appliedError - trueError).array() * trueError.array()).matrix();;  // Error increment method 2
-        //        appliedError = appliedError.cwiseAbs(); // inserted on 8 Jan 18
+        appliedError = 1.1 * trueError;   
     }
     L_hat = trueError;
     L_hat_previous = trueError;
@@ -1089,7 +992,6 @@ mstom::zonotope compute_Rerr_bar(int state_dim, mstom::intervalMatrix& Data_inte
 
 mstom::zonotope compute_L_hatB(int state_dim, Eigen::VectorXd& x_bar, mstom::zonotope& Z0, mstom::zonotope& exprAX0, double r, Eigen::VectorXd& fAx_bar,double Datab, double Datac, double Datad, int LinErrorMethod, Eigen::VectorXd& L_hat, Eigen::VectorXd u){
     // Guernic Girard
-    //    VectorXd appliedError = MatrixXd::Constant(state_dim,1,pow(10,-1));//<------------
     Eigen::VectorXd appliedError = Eigen::MatrixXd::Constant(state_dim,1,0);
     mstom::zonotope AE; // zonotope(appliedError)
     AE.centre = Eigen::VectorXd::Zero(state_dim);
@@ -1110,18 +1012,13 @@ mstom::zonotope compute_L_hatB(int state_dim, Eigen::VectorXd& x_bar, mstom::zon
         Rv = Mtemp.cwiseAbs().maxCoeff();
         double alpha = Datac + Datad * Rv;
         mstom::zonotope omega0 = mstom::convexHull(Z0, (exprAX0+(V*r)+(B*alpha)));
-        //        plot(Rtotal1, 1, 2);
         if(LinErrorMethod == 1)
             trueError = compute_L_Hat1(omega0, x_bar, state_dim,u);
         else
             trueError = compute_L_Hat2(omega0, x_bar, state_dim,u);
-        //cout << "trueError \n" << trueError << endl;
-        //        perfIndCurr = trueError.dot(appliedError.cwiseInverse()); // trueError./appliedError
-        perfIndCurr = (trueError.cwiseProduct(appliedError.cwiseInverse())).maxCoeff(); // max(trueError./appliedError)
-        appliedError = 1.1 * trueError;   //Error increment method 1
-        //        appliedError = ((appliedError - trueError).array() * trueError.array()).matrix();;  // Error increment method 2
-        //        appliedError = appliedError.cwiseAbs(); // inserted on 8 Jan 18
-    }
+         perfIndCurr = (trueError.cwiseProduct(appliedError.cwiseInverse())).maxCoeff(); // max(trueError./appliedError)
+        appliedError = 1.1 * trueError; 
+     }
     L_hat = trueError;
     
     AE.generators = Eigen::MatrixXd(trueError.asDiagonal());
@@ -1141,7 +1038,7 @@ mstom::zonotope compute_L_hatB(int state_dim, Eigen::VectorXd& x_bar, mstom::zon
 
 
 std::vector<mstom::zonotope> PlotStorage;
-int ZorDeltaZ;  // 1 if Z, 0 if deltaZ; use proper expression of Gamma
+int ZorDeltaZ;  // 1 if Z, 0 if deltaZ
 extern double LHatTimeavg;    //defined in Abstraction.hh
 extern int countavg;                    //defined in Abstraction.hh, count for average of time
 
@@ -1162,7 +1059,6 @@ Eigen::VectorXd computeM(double tau, state_type lower_left, state_type upper_rig
     int state_dim = 2;
     int input_dim = 1;
     Eigen::VectorXd M(state_dim), Mb(state_dim);
-    //interval inttemp, x, u;
     std::vector<vnodelp::interval> xx(state_dim), x(state_dim), u(input_dim), Kprime(state_dim), Kbprime(state_dim);
     for(int i=0;i<state_dim;i++)
     {
@@ -1170,9 +1066,6 @@ Eigen::VectorXd computeM(double tau, state_type lower_left, state_type upper_rig
     }
     for(int i=0; i<input_dim;i++)
         u[i] = vnodelp::interval(inp_lower_left[i], inp_upper_right[i]);
-    
-    //         xx[0] = x[1];
-    //        xx[1] = -(sin(x[0]) + u[0] * cos(x[0])) - 2 * 0.0125 * x[1];
     xx = funcLj_system(x, u, xx);
     for(int i=0;i<state_dim;i++)
     {
@@ -1185,27 +1078,22 @@ Eigen::VectorXd computeM(double tau, state_type lower_left, state_type upper_rig
     while(checkval < state_dim)
     {
         checkval = 0;   //0 if further iteration needed else >0
-        //        xx[0] = x[1];
-        //        xx[1] = -(sin(x[0]) + u[0] * cos(x[0])) - 2 * 0.0125 * x[1];
-        xx = funcLj_system(x, u, xx);
+         xx = funcLj_system(x, u, xx);
         for(int i=0;i<state_dim;i++)
         {
             Mb(i) = vnodelp::mag(xx[i]);
             Kbprime[i] = vnodelp::interval(lower_left[i]-Mb(i)*tau, upper_right[i]+Mb(i)*tau);
-            //            if(subseteq(Kbprime[i], Kprime[i]))
-            std::cout<< "bool: " << (Mb(i) <= M(i)) << endl;
+             std::cout<< "bool: " << (Mb(i) <= M(i)) << endl;
             std::cout << "(Mb(i)-M(i)) = " << (Mb(i) - M(i))<< endl;
             if(Mb(i) <= M(i))
             {
-                //                cout<< "bool: " << (Mb(i) <= M(i)) << endl;
-                checkval++;
+                  checkval++;
             }
         }
         M = Mb; // Mb will never be less than M
         std::cout << "Mb\n"<< Mb <<"\ncheckval= "<< checkval << endl ;
         x=Kbprime;
     }
-    //    mstom::zonotope Z = vecIntToZono(Kbprime);
     Eigen::VectorXd gL_hat = compute_L_Hat3(Kbprime, u);
     return gL_hat;
 }
@@ -1222,13 +1110,7 @@ int computeKprime(double tau, vnodelp::interval* xin,  vnodelp::interval u[], in
         Kprime[i] = xin[i] + vnodelp::interval(-M[i]*tau, M[i]*tau);
     }
     x = Kprime;
-    
-    //    std::cout << "M\n"<< M << endl;
-    //    std::cout << "\nx = ";
-    //    for(int i=0;i<state_dim;i++)
-    //        std::cout << xin[i] << ", " ;
-    //    std::cout << endl;
-    
+     
     int checkval = 0;
     int countchk = 0;
     while(checkval < dim)
@@ -1240,17 +1122,12 @@ int computeKprime(double tau, vnodelp::interval* xin,  vnodelp::interval u[], in
         {
             Mb[i] = vnodelp::mag(xx[i]);
             Kbprime[i] = xin[i] + vnodelp::interval(-Mb[i]*tau, Mb[i]*tau);
-            //            std::cout << "vnodelp::sup(Kbprime[i]) = " << vnodelp::sup(Kbprime[i]) << endl;
             
             if(std::abs(vnodelp::sup(Kbprime[i])) > (KprimeLimit*std::abs(vnodelp::sup(x_initial[i]))))
             {
-                //                std::cout << "computeKprime: KprimeLimit exceeded\n";
-                return 1;
+                 return 1;
             }
-            //            std::cout<< "bool: " << (Mb(i) <= M(i)) << endl;
-            //            std::cout << "(Mb(i)-M(i)) = " << (Mb(i) - M(i))<< endl;
-            //            if(Mb(i) <= M(i))
-            if(Mb[i] - M[i] <= pow(10,-4))
+              if(Mb[i] - M[i] <= pow(10,-4))
             {
                 checkval++;
             }
@@ -1259,27 +1136,11 @@ int computeKprime(double tau, vnodelp::interval* xin,  vnodelp::interval u[], in
         for(int i=0;i<dim;i++)
         {
             M[i] = Mb[i];
-            //            std::cout << "Mb[i] = "<< Mb[i] << ", ";
         }
-        
-        //        std::cout << "\ncheckval= "<< checkval << endl ;
-        
-        x = Kbprime;
+         x = Kbprime;
     }
-    //    std::cout<< "countchk = " << countchk << endl;
-    return 0;
+     return 0;
 }
-
-//template<class Lugbx, class Lugbu>
-//void computeLu(Lugbx xin, Lugbu uin, Lugbx rin, double tau, int dim, int dimInput, double* Lu){
-//    vnodelp::interval x[dim], u[dimInput], Kprime[dim];
-//    for(int i=0;i<dim;i++)
-//        x[i] = vnodelp::interval(xin[i]-rin[i],xin[i]+rin[i]);  // m_z already included in rin
-//    for(int i=0;i<dimInput;i++)
-//        u[i] = vnodelp::interval(uin[i]);
-//     computeKprime(tau,x,u,dim,Kprime); // now x = Kprime
-//     computeJacobian_Lu_array2(Kprime, u, dim, 0, Lu); // returns data in Lu
-//}
 
 template<class Lugbx, class Lugbu>
 void computeLu(Lugbx xin, Lugbu uin, Lugbx rin, double tau_in, int dim, int dimInput, double* Lu){
@@ -1289,7 +1150,6 @@ void computeLu(Lugbx xin, Lugbu uin, Lugbx rin, double tau_in, int dim, int dimI
     for(int i=0;i<dim;i++)
     {
         x[i] = vnodelp::interval(xin[i]-rin[i],xin[i]+rin[i]);  // m_z already included in rin
-        //        Kprime[i] = KprimeLimit * x[i];
     }
     for(int i=0;i<dimInput;i++)
         u[i] = vnodelp::interval(uin[i]);
@@ -1301,27 +1161,13 @@ void computeLu(Lugbx xin, Lugbu uin, Lugbx rin, double tau_in, int dim, int dimI
         xp = x;
         checkval = 0;
         int tauDivision = tau_in/tau;
-        
-        //        std::cout << "tauDivision = " << tauDivision << ", tau = " << tau << ", tau_in/tau = " << tau_in/tau << endl;
         for(int i = 0;i<tauDivision;i++)
-        {
-            //            std::cout << "xp: = ";
-            //            for(int ii =0 ;ii<dim;ii++)
-            //                std::cout << xp[ii] << "\n ";
-            //            std::cout << endl;
-            
+        {          
             chk = computeKprime(tau,xp,u,dim,Kprime,KprimeLimit, x);
             xp = Kprime;
             if(chk == 1)
                 break;
         }
-        //        for(int i=0;i<dim;i++)
-        //        {
-        //            if(std::abs(vnodelp::sup(Kprime[i])) < KprimeLimit*std::abs(vnodelp::sup(x[i])))
-        //            {
-        //                checkval++;
-        //            }
-        //        }
         tau = tau/2;
     }
     computeJacobian_Lu_array2(Kprime, u, dim, 0, Lu); // returns data in Lu
@@ -1385,27 +1231,22 @@ mstom::zonotope one_iteration(mstom::zonotope Z0, Eigen::VectorXd u, int state_d
     for(int i=0;i<state_dim;i++)
         for(int j=0;j<state_dim;j++)
             A(i,j) = A_array[i*state_dim+j];
-    //    cout<< "Matrix A: \n"<< A << endl;
     Eigen::VectorXd f_bar(state_dim);
     f_bar = funcLj_system(x_bar, u, f_bar);
     mstom::zonotope Rtotal_tp;
     Eigen::VectorXd L_hat;
     
-#if 1   // 1 if exponential as series truncation; 0 if exponential matrix of eigen method
+#if 1   // 1 if exponential as series truncation; 0 if exponential matrix of eigen (GuernicGirard) 
     mstom::intervalMatrix Er;   //E(r)
     mstom::intervalMatrix Data_interm;  //(Aˆ-1)*(exp(Ar) - I)
     double epsilone = mstom::compute_epsilon(A,r,p);
     int isOriginContained = 0;
-    //    std::vector<Eigen::MatrixXd> Ar_powers_fac; // pow(A*r,i)/factorial(i)
+    //    Ar_powers_fac; // pow(A*r,i)/factorial(i)
     
     double bound = mstom::p_adjust_Er_bound(A,r,p,epsilone);
     double Ar_powers_fac_arr[state_dim*state_dim*p];
     
     mstom::intervalMatrix expAr = mstom::matrix_exponential(A, r, p, epsilone, Er, Ar_powers_fac_arr, bound);  //exp(A*r);
-    
-    //    std::cout << "p= " << p << std::endl;
-    //      std::cout << "expAr\n" << expAr.lb << "ub: \n" << expAr.ub << std::endl;
-    
     mstom::intervalMatrix F = mstom::compute_F(p, r, A, Er, Ar_powers_fac_arr);
     mstom::intervalMatrix F_tilde = mstom::compute_F_tilde(p,r,A,Er,isOriginContained, Ar_powers_fac_arr);
     mstom::zonotope F_tilde_f_bar = F_tilde * mstom::zonotope(f_bar, Eigen::VectorXd::Zero(state_dim));
@@ -1418,36 +1259,16 @@ mstom::zonotope one_iteration(mstom::zonotope Z0, Eigen::VectorXd u, int state_d
     mstom::zonotope Rtotal;
     
     mstom::zonotope Rhom = mstom::convexHull(Z0delta, Rhom_tp) + F * Z0delta + x_bar;   // without F_tilde
-    ZorDeltaZ = 1;  //1 if Z, 0 if deltaZ; use proper expression of Gamma
+    ZorDeltaZ = 1;  //1 if Z, 0 if deltaZ
     mstom::zonotope RV;
     TicToc timeLhat;
     timeLhat.tic();
-    if(LinErrorMethod == 1)
-        RV = compute_Rerr_bar(state_dim, Data_interm, Rhom, x_bar, f_bar, u, L_hat,LinErrorMethod, F_tilde_f_bar);  // Rerr_bar; L_hat updated in the call
-    else
-    {
-        RV = compute_Rerr_bar(state_dim, Data_interm, Rhom, x_bar, f_bar, u, L_hat, LinErrorMethod, F_tilde_f_bar);  // Rerr_bar; L_hat updated in the call
-        //            RV = compute_Rerr_bar2(state_dim, Data_interm, mstom::deletezeros(Rhom), x_bar, f_bar, u, LinErrorMethod, F_tilde_f_bar, funcH);  // Rerr_bar; L_hat updated in the call
-        //             L_hat = MatrixXd::Constant(state_dim,1,0);    // garbage value
-        
-    }
+    RV = compute_Rerr_bar(state_dim, Data_interm, Rhom, x_bar, f_bar, u, L_hat,LinErrorMethod, F_tilde_f_bar);  // Rerr_bar; L_hat updated in the call
     LHatTimeavg += timeLhat.tocMST();
     Rtotal_tp = Rhom_tp + RV  + x_bar;
     
 #else
-    //ZorDeltaZ = 0;    //1 if Z, 0 if deltaZ; use proper expression of Gamma
-    //    VectorXd fAx_bar = f_bar - A*x_bar;
-    //    double RX0 = (c.cwiseAbs() + (ss_eta/2)).maxCoeff();
-    //    double AinfNorm = A.cwiseAbs().rowwise().sum().maxCoeff();
-    //    double Datab = std::exp(r * AinfNorm)-1-r*AinfNorm;
-    //    double Datac = Datab * RX0;
-    //    double Datad = Datab / AinfNorm;
-    //    mstom::zonotope exprAX0 = Z0 * (r*A).exp(); // exp(r*A) * Z0
-    //    VectorXd L_hat;
-    //    mstom::zonotope Rtotal_tp = compute_L_hatB(state_dim, x_bar, Z0, exprAX0, r, fAx_bar, Datab, Datac, Datad, LinErrorMethod, L_hat, u, funcExpre.funcH);
-    
-    //    with deltaX
-    ZorDeltaZ = 0;    //1 if Z, 0 if deltaZ; use proper expression of Gamma
+    ZorDeltaZ = 0;    //1 if Z, 0 if deltaZ
     double RdeltaX0 = ((c-x_bar).cwiseAbs() + (ss_eta/2)).maxCoeff();
     double AinfNorm = A.cwiseAbs().rowwise().sum().maxCoeff();
     double Datab = std::exp(r * AinfNorm)-1-r*AinfNorm;
@@ -1457,19 +1278,9 @@ mstom::zonotope one_iteration(mstom::zonotope Z0, Eigen::VectorXd u, int state_d
     mstom::zonotope exprAdeltaX0 = (r*A).exp() * (Z0delta)  ; // exp(r*A) * Z0 ;
     Rtotal_tp = compute_L_hatB(state_dim, x_bar, Z0delta, exprAdeltaX0, r, f_bar, Datab, Datac, Datad, LinErrorMethod, L_hat, u) + x_bar;
 #endif
-    /*
-     cout<<"Rtotal_tp:\n";
-     mstom::deletezeros( Rtotal_tp).display();
-     cout<< "\nRtotal: \n";
-     mstom::deletezeros(Rtotal).display();
-     //mstom::plotstore(PlotStorage, deletezeros( Rtotal_tp));
-     //mstom::plotstore(PlotStorage, deletezeros(Rtotal));
-     */
-    
-    //cout << "\nL_hat: \n"<< L_hat << endl;
     
     if(L_hat_storage.size() < 1)
-        L_hat_storage.push_back(L_hat(1));  // <------ for the cartpole example: L_hat(0) =0 in all iterations
+        L_hat_storage.push_back(L_hat(1));  
     
     Eigen::VectorXd Ltemp = L_bar - L_hat;
     bool aa = true;
@@ -1500,7 +1311,7 @@ mstom::zonotope one_iteration(mstom::zonotope Z0, Eigen::VectorXd u, int state_d
     if(aa == false)
     {
         splitz(Z0,Z01,Z02,maxIndex);
-        std::cout << "\n#########\n##  Split Occurred  ##\n###########\n\n";
+        std::cout << "\n#########\n##  Split  ##\n###########\n\n";
         one_iteration(Z01, u, state_dim, r, p, L_bar, stora, count1, LinErrorMethod, L_hat_storage, ss_eta);
         one_iteration(Z02, u, state_dim, r, p, L_bar, stora, count1, LinErrorMethod, L_hat_storage, ss_eta);
     }
@@ -1516,11 +1327,9 @@ mstom::zonotope ReachableSet(int dim, int dimInput, const double tau, state_type
     int p = 5; // 3; matrix exponential terminated after p terms
     // appliedError = 1.1 * trueError for both Rerr_bar and L_hatB
     // appliedError begins with _0_ for Rerr_bar, with 0 for L_hatB
-    // p increased till E(r) < pow(10,-5)   // on 05 feb 18 for aircraft from (-3)
+    // p increased till E(r) < pow(10,-5)  
     double l_bar = 1000;   //max above which splits
-    
-    //L_hat_storage : only for visualizing variation in L_hat across computations
-    
+   
     int state_dim = dim;
     int input_dim = dimInput;
     double finaltime = tau;
@@ -1539,15 +1348,8 @@ mstom::zonotope ReachableSet(int dim, int dimInput, const double tau, state_type
     }
     for(int i=0;i<input_dim;i++)
         u(i) = uu[i];
-    
-    //    cout << "c\n"<< c << endl;
-    //    cout<< "ss_eta\n"<< ss_eta << endl;
-    //    cout << "u\n"<< u << endl;
-    
+     
     mstom::zonotope Z0(c,ss_eta);
-    //plotstore(PlotStorage, Z0);
-    //cout<< "Z0: \n";
-    //Z0.display();
     std::vector<mstom::zonotope> stora;  // storage for Reachable sets (at r)
     
     mstom::zonotope Zn;
@@ -1561,27 +1363,11 @@ mstom::zonotope ReachableSet(int dim, int dimInput, const double tau, state_type
     // forming convex hull of all zonotopes in stora
     mstom::zonotope Zf = mstom::convexHull(stora);
     mstom::intervalMatrix IHM = IntervalHull(Zf);
-    //     mstom::intervalMatrix IHM = IntervalHull(Zn);
     for(int i=0;i<state_dim;i++)
     {
         rr[i] = (IHM.ub(i) - IHM.lb(i)) * 0.5;
         x[i] = IHM.lb(i) + rr[i];
     }
-    //    if(stora.size()>1)
-    //       cout <<"stora size= "<< stora.size()<< endl;
-    /*
-     if(stora.size())
-     {
-     for(int i=0;i<stora.size();i++)
-     {
-     mstom::deletezeros(stora[i]).display();
-     cout << endl;
-     //mstom::plotstore(PlotStorage, stora[i]);
-     }
-     }
-     */
-    
-    //    return stora[0];
     return Zn;
 }
 
