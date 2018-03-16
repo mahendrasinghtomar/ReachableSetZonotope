@@ -1,7 +1,3 @@
-
-// mst: edited 28 Dec 17
-// compute_gb2() for zonotope based abstraction
-
 /*
  * Abstraction.hh
  *
@@ -22,7 +18,6 @@
 #include "TransitionFunction.hh"
 
 #include "ReachableSet.h"
-//#include "LuGrowthbound.h"
 #include <forward_list>
 #include "TicToc.hh"
 #include "RungeKutta4.hh"
@@ -217,13 +212,7 @@ public:
                 /* integrate system and radius growth bound */
                 /* the result is stored in x and r */
                 radius_post(r,x,u);
-                
-//                std::cout<< "radius post = ";
-//                for(int ii = 0;ii<dim;ii++)
-//                    std::cout<< r[ii] << ", ";
-//                std::cout<< std::endl;
-                
-                system_post(x,u);   // <---------- mst
+                system_post(x,u);   
                 /* determine the cells which intersect with the attainable set:
                  * discrete hyper interval of cell indices
                  * [lb[0]; ub[0]] x .... x [lb[dim-1]; ub[dim-1]]
@@ -355,7 +344,7 @@ public:
   template<class F1, class F3=decltype(params::avoid_abs)>
   void compute_gbLu(TransitionFunction& transition_function,
                   F1& system_post, 
-                  double tau,   // mst 31 Jan18
+                  double tau,  
                   F3& avoid=params::avoid_abs) {
     /* number of cells */
     abs_type N=m_state_alphabet.size(); 
@@ -365,7 +354,7 @@ public:
     abs_ptr_type T=0; 
     /* state space dimension */
     int dim=m_state_alphabet.get_dim();
-      int dimInput = m_input_alphabet.get_dim();    //mst 31 Jan18;L(u) growth bound
+    int dimInput = m_input_alphabet.get_dim();   
       
     /* for display purpose */
     abs_type counter=0;
@@ -394,26 +383,12 @@ public:
     /* init in transition_function the members no_pre, no_post, pre_ptr */ 
     transition_function.init_infrastructure(N,M);
     /* lower-left & upper-right corners of hyper rectangle of cells that cover attainable set */
-    std::unique_ptr<abs_type[]> corner_IDs(new abs_type[N*M*2]());  // <--- ?mst why multiplication by 2
+    std::unique_ptr<abs_type[]> corner_IDs(new abs_type[N*M*2]());  
     /* is post of (i,j) out of domain ? */
     std::unique_ptr<bool[]> out_of_domain(new bool[N*M]());
       
       
       /* computation of the growth bound (the result is stored in r)  */
-      auto radius_post2 = [&tau, &dim](state_type &r, const state_type&, const input_type &u, Eigen::MatrixXd &Lu) noexcept {
-          
-          auto rhs = [&Lu, &tau, &dim](state_type &drdt,  const state_type &r, const input_type &u) noexcept {
-              for(int i=0;i<dim;i++)
-              {
-                  drdt[i] = 0;
-                  for(int j=0;j<dim;j++)
-                      drdt[i] = drdt[i] + Lu(i,j)*r[j];
-                  drdt[i] = drdt[i];
-              }
-          };
-          scots::runge_kutta_fixed4(rhs,r,u,dim,tau);
-      };
-      
       auto radius_post2b = [&tau, &dim](state_type &r, const state_type&, const input_type &u, double* Lu) noexcept {
           
           auto rhs = [&Lu, &tau, &dim](state_type &drdt,  const state_type &r, const input_type &u) noexcept {
@@ -428,13 +403,7 @@ public:
           scots::runge_kutta_fixed4(rhs,r,u,dim,tau);
       };
 
-
-      
-//      std::vector<Eigen::MatrixXd> LuStore(M); // store L(u) as the number of inputs
-//      Eigen::MatrixXd* LuStore = new Eigen::MatrixXd [M];
       double* LuStore = new double[M*dim*dim];
-      
-      
     /*
      * first loop: compute corner_IDs:
      * corner_IDs[i*M+j][0] = lower-left cell index of over-approximation of attainable set 
@@ -451,7 +420,6 @@ public:
       }
       /* loop over all inputs */
       for(abs_type j=0; j<M; j++) {
-//          std::cout << endl << "j = " << j << endl;
         out_of_domain[i*M+j]=false;
         /* get center x of cell */
         m_state_alphabet.itox(i,x);
@@ -463,68 +431,18 @@ public:
         /* integrate system and radius growth bound */
         /* the result is stored in x and r */
           
-          countavg++;       // mst 25 Jan18
-          TicToc timet2;    // mst 25 Jan18
-          timet2.tic();     // mst 25 Jan18
+          countavg++;       
+          TicToc timet2;    
+          timet2.tic();     
           
-//        radius_post(r,x,u);
-          
-//          std::cout<< "r = ";
-//          for(int ii = 0;ii<dim;ii++)
-//              std::cout<< r[ii] << ", ";
-//           std::cout<< std::endl;
-//          std::cout<< "x = ";
-//          for(int ii = 0;ii<dim;ii++)
-//              std::cout<< x[ii] << ", ";
-//          std::cout<< std::endl;
-//          std::cout<< "u = ";
-//          for(int ii = 0;ii<dimInput;ii++)
-//              std::cout<< u[ii] << ", ";
-//          std::cout<< std::endl;
-          
-//          double Lu[dim*dim];
-//          computeLuMRerr(x,u,tau,r, Lu); // Using vnodelp
-          
-//          Eigen::MatrixXd Lu = computeLu(x,u,r,tau,funcExpre,dim, dimInput);    //Mtau
-
           double Lu[dim*dim];
           computeLu(x,u,r,tau,dim, dimInput, Lu);    //Mtau using array
-          
-//          Eigen::MatrixXd Lu = LuOverSS(lower_left, upper_right, u, funcExpre, dim, dimInput);  // without computation of K'
-          
-//          // storing L(u)
-//          Eigen::MatrixXd Lu;
-//          if(i==0){
-////              LuStore[j] = LuOverSS(lower_left, upper_right, u, funcExpre, dim, dimInput);  // without K'
-//              LuStore[j] = LuOverSS_array(lower_left, upper_right, u, dim, dimInput);
-//          }
-//          Lu = LuStore[j];
-          
-//          // storing L(u); without using eigen matrix, instead array
-//          double* Lu;
-//          if(i==0){
-//              //              LuStore[j] = LuOverSS(lower_left, upper_right, u, dim, dimInput);  // without K'
-//              LuOverSS_array2(lower_left, upper_right, u, dim, dimInput, j, LuStore);
-//          }
-//          Lu = &LuStore[j*dim*dim];
-          
           radius_post2b(r,x,u,Lu);  // Lu as double*
-//          radius_post2(r,x,u,Lu);
-          
-         
-//          std::cout<< "radius post = ";
-//          for(int ii = 0;ii<dim;ii++)
-//              std::cout<< r[ii] << ", ";
-//          std::cout<< std::endl;
-          
-//          compute_radius_post(r,x,u,tau, dim, dimInput, funcExpre )   // 31 Jan18; for L(u); growth bound
           system_post(x,u);
           
-          ttimeavg += timet2.tocMST();  // mst 25 Jan18
+          ttimeavg += timet2.tocMST();  
           
-          
-          
-        /* determine the cells which intersect with the attainable set: 
+         /* determine the cells which intersect with the attainable set: 
          * discrete hyper interval of cell indices 
          * [lb[0]; ub[0]] x .... x [lb[dim-1]; ub[dim-1]]
          * covers attainable set 
@@ -650,10 +568,9 @@ public:
       }
       progress(i,N,counter);
     }
-      std::cout << "total average time = " << ttimeavg/countavg << endl;    // mst 25 Jan18
+      std::cout << "total average time = " << ttimeavg/countavg << endl;    
   }
  
-    //-------------------------------
     template<class F3=decltype(params::avoid_abs)>
     void compute_gb2(TransitionFunction& transition_function, const double tau, F3& avoid=params::avoid_abs) {
         // MST: intersection after taking interval hull of the zonotope
@@ -698,25 +615,18 @@ public:
         /* init in transition_function the members no_pre, no_post, pre_ptr */
         transition_function.init_infrastructure(N,M);
         /* lower-left & upper-right corners of hyper rectangle of cells that cover attainable set */
-        std::unique_ptr<abs_type[]> corner_IDs(new abs_type[N*M*2]());  // <--- ?mst why multiplication by 2
+        std::unique_ptr<abs_type[]> corner_IDs(new abs_type[N*M*2]());  
         /* is post of (i,j) out of domain ? */
         std::unique_ptr<bool[]> out_of_domain(new bool[N*M]());
-        
-//        std::forward_list<bool> not_a_post;    // mst
-        
         /*
          * first loop: compute corner_IDs:
          * corner_IDs[i*M+j][0] = lower-left cell index of over-approximation of attainable set
          * corner_IDs[i*M+j][1] = upper-right cell index of over-approximation of attainable set
          */
         /* loop over all cells */
-        std::vector<double> L_hat_storage;   //-----------------
-        L_hat_previous = Eigen::VectorXd::Zero(dim);    // 06 March 18
-        
-//        mstom::zonotope Z;
-//        int count_iteration = 0;
-        for(abs_type i=0; i<N; i++) { //N
-            //std::cout<<"cell no = " << i << endl;
+        std::vector<double> L_hat_storage;   
+        L_hat_previous = Eigen::VectorXd::Zero(dim);    
+        for(abs_type i=0; i<N; i++) { 
             /* is i an element of the avoid symbols ? */
             if(avoid(i)) {
                 for(abs_type j=0; j<M; j++) {
@@ -726,7 +636,6 @@ public:
             }
             /* loop over all inputs */
             for(abs_type j=0; j<M; j++) { //M
-//                std::cout << "j= "<< j << endl;
                 out_of_domain[i*M+j]=false;
                 /* get center x of cell */
                 m_state_alphabet.itox(i,x);
@@ -737,11 +646,6 @@ public:
                 m_input_alphabet.itox(j,u);
                 /* integrate system and radius growth bound */
                 /* the result is stored in x and r */
-                //radius_post(r,x,u);
-                //system_post(x,u);   // <---------- mst
-                
-//                ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage, funcExpre);
-//                mstom::zonotope Z = ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage, funcExpre);
                 countavg++;
                 TicToc timet;
                 timet.tic();
@@ -753,7 +657,6 @@ public:
                  * [lb[0]; ub[0]] x .... x [lb[dim-1]; ub[dim-1]]
                  * covers attainable set
                  */
-//                abs_type npostTrue; // mst
                 abs_type npost=1;
                 for(int k=0; k<dim; k++) {
                     /* check for out of bounds */
@@ -774,8 +677,6 @@ public:
                     npost*=no[k];
                     cc[k]=0;
                 }
-//                npostTrue = npost;    // mst
-//                cout<< "\nnpost, npostTrue = "<< npost << "  " << npostTrue << endl;
                 corner_IDs[i*(2*M)+2*j]=0;
                 corner_IDs[i*(2*M)+2*j+1]=0;
                 if(out_of_domain[i*M+j])
@@ -793,59 +694,20 @@ public:
                             cc[l+1]++;
                         }
                     }
-                    /* store id's of lower-left and upper-right cell */     // mst: shifted few lines up
+                    /* store id's of lower-left and upper-right cell */     
                     if(k==0)
                         corner_IDs[i*(2*M)+2*j]=q;
                     if(k==npost-1)
                         corner_IDs[i*(2*M)+2*j+1]=q;
                     
-//                    m_state_alphabet.itox(q,x); //mst
-//                    mstom::zonotope Zcell = mstom::zonotope(x,eta,dim);
-//                    mstom::zonotope Zsub = Z - Zcell;
-//                    //ifOriginInZonotope(Zsub);
-//                    tribool tb = ifOriginInZonotope(Zsub);
-//
-//                    std::vector<mstom::zonotope> plotsto;
-//                    plotsto.push_back(Zcell);
-//                    plotsto.push_back(Z);
-//                    //plotsto.push_back(Zsub);
-                    //plot(plotsto, 1, 2);
-                    //cout << "\ntb = "<< tb << ", Is tb == indetermin: "<< (tb != true && tb != false) << endl;
-//                    if(tb == false)
-//                    {
-//                        not_a_post.push_front(true) ;
-//                        npostTrue = npostTrue - 1 ;
-//                        continue;
-//                    }
-//                    else if(tb == true)
-//                        not_a_post.push_front(false);
-//                    else         // <-------------------------------
-//                    {
-//                        // indeterminate
-//                     }
                     
                     /* (i,j,q) is a transition */
                     /* increment number of pres for (q,j) */
                      transition_function.m_no_pre[q*M+j]++;
-//                    /* (i,j,q) is a transition */
-//                    /* increment number of pres for (q,j) */
-//                    transition_function.m_no_pre[q*M+j]++;
-//                    /* store id's of lower-left and upper-right cell */
-//                    if(k==0)
-//                        corner_IDs[i*(2*M)+2*j]=q;
-//                    if(k==npost-1)
-//                        corner_IDs[i*(2*M)+2*j+1]=q;
                 }
-//                if(npost != npostTrue)
-//                    cout<< "\nnpost, npostTrue = "<< npost << "  " << npostTrue << endl;
                 /* increment number of transitions by number of post */
                 T+=npost;
-//                T+=npostTrue;   //mst
                 transition_function.m_no_post[i*M+j]=npost;
-//                transition_function.m_no_post[i*M+j]=npostTrue;   // mst
-                
-//                if(j==50)
-//                    break;  //----------------
             }
             /* print progress */
             if(m_verbose) {
@@ -854,20 +716,13 @@ public:
             }
             progress(i,N,counter);
             
-//            if(i==10)
-//                break;
         }
-//        not_a_post.reverse();
-        
-//        mstom::plot(L_hat_storage);
-        
-        
         /* compute pre_ptr */
         abs_ptr_type sum=0;
         for(abs_type i=0; i<N; i++) {
             for(abs_type j=0; j<M; j++) {
-                sum+=transition_function.m_no_pre[i*M+j];   // mst: ??----------
-                transition_function.m_pre_ptr[i*M+j]=sum;   // mst: ??----------
+                sum+=transition_function.m_no_pre[i*M+j];   
+                transition_function.m_pre_ptr[i*M+j]=sum;   
             }
         }
         /* allocate memory for pre list */
@@ -913,14 +768,9 @@ public:
                             cc[l+1]++;
                         }
                     }
-                    
-//                    bool valA = not_a_post.front(); // mst
-//                    not_a_post.pop_front();
-//                    if(valA)    // not_a_post is true => q is not a post
-//                        continue;
-                    
+                                      
                     /* (i,j,q) is a transition */
-                    transition_function.m_pre[--transition_function.m_pre_ptr[q*M+j]]=i;    // mst: ??
+                    transition_function.m_pre[--transition_function.m_pre_ptr[q*M+j]]=i;    
                 }
             }
             /* print progress */
@@ -934,9 +784,7 @@ public:
         std::cout << "L_hat average time = " << LHatTimeavg/countavg << endl;
         std:: cout << "% of time for L_hat computation = " << LHatTimeavg * 100 / ttimeavg << endl;
     }
-    
-    //---------
-    
+       
     template<class F1, class F2, class F4, class F3=decltype(params::avoid_abs)>
     void compute_gb5(TransitionFunction& transition_function, const double tau,F1& system_post,
                      F2& radius_post,   F4& funcExpre, F3& avoid=params::avoid_abs) {
@@ -945,7 +793,6 @@ public:
         
         /* number of cells */
         abs_type N=m_state_alphabet.size();
-        //abs_type N=50;
         /* number of inputs */
         abs_type M=m_input_alphabet.size();
         //abs_type M=1;
@@ -983,23 +830,17 @@ public:
         /* init in transition_function the members no_pre, no_post, pre_ptr */
         transition_function.init_infrastructure(N,M);
         /* lower-left & upper-right corners of hyper rectangle of cells that cover attainable set */
-        std::unique_ptr<abs_type[]> corner_IDs(new abs_type[N*M*2]());  // <--- ?mst why multiplication by 2
+        std::unique_ptr<abs_type[]> corner_IDs(new abs_type[N*M*2]());  
         /* is post of (i,j) out of domain ? */
         std::unique_ptr<bool[]> out_of_domain(new bool[N*M]());
-        
-        //        std::forward_list<bool> not_a_post;    // mst
-        
-        /*
+         /*
          * first loop: compute corner_IDs:
          * corner_IDs[i*M+j][0] = lower-left cell index of over-approximation of attainable set
          * corner_IDs[i*M+j][1] = upper-right cell index of over-approximation of attainable set
          */
         /* loop over all cells */
-        std::vector<double> L_hat_storage;   //-----------------
-        //        mstom::zonotope Z;
-        //        int count_iteration = 0;
-        for(abs_type i=0; i<N; i++) { //N
-            //std::cout<<"cell no = " << i << endl;
+        std::vector<double> L_hat_storage;  
+        for(abs_type i=0; i<N; i++) { 
             /* is i an element of the avoid symbols ? */
             if(avoid(i)) {
                 for(abs_type j=0; j<M; j++) {
@@ -1008,8 +849,7 @@ public:
                 continue;
             }
             /* loop over all inputs */
-            for(abs_type j=0; j<M; j++) { //M
-                //                std::cout << "j= "<< j << endl;
+            for(abs_type j=0; j<M; j++) { 
                 out_of_domain[i*M+j]=false;
                 /* get center x of cell */
                 m_state_alphabet.itox(i,x);
@@ -1027,25 +867,15 @@ public:
                 std::cout << "\nu: ";
                 for(i=0;i<dimInput ;i++)
                     std::cout << u[i] << ", ";
-                
-                
                 r2 = r;
                 x2 = x;
                 radius_post(r2,x2,u);
                 system_post(x2,u);
-                
-                //                mstom::zonotope Z = ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage, funcExpre);
                 countavg++;
                 TicToc timet;
                 timet.tic();
                 mstom::zonotope Zzo = ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage, funcExpre);
-                ttimeavg += timet.tocMST();
-                
-//                for(i=0;i<dim;i++)
-//                {
-//                    std::cout<< "\nr, r2, x, x2:  " << r[i]<<", "<<r2[i] << ", " << x[i] << ", " << x2[i] << endl;
-//                }
-                
+                ttimeavg += timet.tocMST();               
                 for(int i=0;i<dim;i++)
                 {
                     r2_eta[i] = 2 * r2[i];
@@ -1057,17 +887,12 @@ public:
                 plotsto.push_back(Zzo);
                 plotsto.push_back(Zgb);
                 plot(plotsto,1,2);
-                
-                
-                
-                
-                
+                 
                 /* determine the cells which intersect with the attainable set:
                  * discrete hyper interval of cell indices
                  * [lb[0]; ub[0]] x .... x [lb[dim-1]; ub[dim-1]]
                  * covers attainable set
                  */
-                //                abs_type npostTrue; // mst
                 abs_type npost=1;
                 for(int k=0; k<dim; k++) {
                     /* check for out of bounds */
@@ -1088,8 +913,6 @@ public:
                     npost*=no[k];
                     cc[k]=0;
                 }
-                //                npostTrue = npost;    // mst
-                //                cout<< "\nnpost, npostTrue = "<< npost << "  " << npostTrue << endl;
                 corner_IDs[i*(2*M)+2*j]=0;
                 corner_IDs[i*(2*M)+2*j+1]=0;
                 if(out_of_domain[i*M+j])
@@ -1107,81 +930,33 @@ public:
                             cc[l+1]++;
                         }
                     }
-                    /* store id's of lower-left and upper-right cell */     // mst: shifted few lines up
+                    /* store id's of lower-left and upper-right cell */     
                     if(k==0)
                         corner_IDs[i*(2*M)+2*j]=q;
                     if(k==npost-1)
                         corner_IDs[i*(2*M)+2*j+1]=q;
-                    
-                    //                    m_state_alphabet.itox(q,x); //mst
-                    //                    mstom::zonotope Zcell = mstom::zonotope(x,eta,dim);
-                    //                    mstom::zonotope Zsub = Z - Zcell;
-                    //                    //ifOriginInZonotope(Zsub);
-                    //                    tribool tb = ifOriginInZonotope(Zsub);
-                    //
-                    //                    std::vector<mstom::zonotope> plotsto;
-                    //                    plotsto.push_back(Zcell);
-                    //                    plotsto.push_back(Z);
-                    //                    //plotsto.push_back(Zsub);
-                    //plot(plotsto, 1, 2);
-                    //cout << "\ntb = "<< tb << ", Is tb == indetermin: "<< (tb != true && tb != false) << endl;
-                    //                    if(tb == false)
-                    //                    {
-                    //                        not_a_post.push_front(true) ;
-                    //                        npostTrue = npostTrue - 1 ;
-                    //                        continue;
-                    //                    }
-                    //                    else if(tb == true)
-                    //                        not_a_post.push_front(false);
-                    //                    else         // <-------------------------------
-                    //                    {
-                    //                        // indeterminate
-                    //                     }
-                    
+                     
                     /* (i,j,q) is a transition */
                     /* increment number of pres for (q,j) */
                     transition_function.m_no_pre[q*M+j]++;
-                    //                    /* (i,j,q) is a transition */
-                    //                    /* increment number of pres for (q,j) */
-                    //                    transition_function.m_no_pre[q*M+j]++;
-                    //                    /* store id's of lower-left and upper-right cell */
-                    //                    if(k==0)
-                    //                        corner_IDs[i*(2*M)+2*j]=q;
-                    //                    if(k==npost-1)
-                    //                        corner_IDs[i*(2*M)+2*j+1]=q;
                 }
-                //                if(npost != npostTrue)
-                //                    cout<< "\nnpost, npostTrue = "<< npost << "  " << npostTrue << endl;
                 /* increment number of transitions by number of post */
                 T+=npost;
-                //                T+=npostTrue;   //mst
                 transition_function.m_no_post[i*M+j]=npost;
-                //                transition_function.m_no_post[i*M+j]=npostTrue;   // mst
-                
-                //                if(j==50)
-                //                    break;  //----------------
-            }
+               }
             /* print progress */
             if(m_verbose) {
                 if(counter==0)
                     std::cout << "1st loop: ";
             }
             progress(i,N,counter);
-            
-            //            if(i==10)
-            //                break;
-        }
-        //        not_a_post.reverse();
-        
-        //mstom::plot(L_hat_storage);
-        
-        
+          }
         /* compute pre_ptr */
         abs_ptr_type sum=0;
         for(abs_type i=0; i<N; i++) {
             for(abs_type j=0; j<M; j++) {
-                sum+=transition_function.m_no_pre[i*M+j];   // mst: ??----------
-                transition_function.m_pre_ptr[i*M+j]=sum;   // mst: ??----------
+                sum+=transition_function.m_no_pre[i*M+j];   
+                transition_function.m_pre_ptr[i*M+j]=sum;   
             }
         }
         /* allocate memory for pre list */
@@ -1228,13 +1003,8 @@ public:
                         }
                     }
                     
-                    //                    bool valA = not_a_post.front(); // mst
-                    //                    not_a_post.pop_front();
-                    //                    if(valA)    // not_a_post is true => q is not a post
-                    //                        continue;
-                    
                     /* (i,j,q) is a transition */
-                    transition_function.m_pre[--transition_function.m_pre_ptr[q*M+j]]=i;    // mst: ??
+                    transition_function.m_pre[--transition_function.m_pre_ptr[q*M+j]]=i;  
                 }
             }
             /* print progress */
@@ -1290,7 +1060,6 @@ public:
             upper_right[i]=m_state_alphabet.get_upper_right()[i];
         }
         
-        //12 Jan18, for global L_hat
         state_type inp_lower_left, inp_upper_right;
         for(int i=0; i<dimInput; i++) {
             inp_lower_left[i]=m_input_alphabet.get_lower_left()[i];
@@ -1307,21 +1076,15 @@ public:
         std::unique_ptr<abs_type[]> corner_IDs(new abs_type[N*M*2]());  // <--- ?mst why multiplication by 2
         /* is post of (i,j) out of domain ? */
         std::unique_ptr<bool[]> out_of_domain(new bool[N*M]());
-        
-        //        std::forward_list<bool> not_a_post;    // mst
-        
-        /*
+         /*
          * first loop: compute corner_IDs:
          * corner_IDs[i*M+j][0] = lower-left cell index of over-approximation of attainable set
          * corner_IDs[i*M+j][1] = upper-right cell index of over-approximation of attainable set
          */
         /* loop over all cells */
-        std::vector<double> L_hat_storage;   //-----------------
-        //        mstom::zonotope Z;
-        //        int count_iteration = 0;
-        for(abs_type i=0; i<N; i++) { //N
-            //std::cout<<"cell no = " << i << endl;
-            /* is i an element of the avoid symbols ? */
+        std::vector<double> L_hat_storage;   
+        for(abs_type i=0; i<N; i++) {
+             /* is i an element of the avoid symbols ? */
             if(avoid(i)) {
                 for(abs_type j=0; j<M; j++) {
                     out_of_domain[i*M+j]=true;
@@ -1329,8 +1092,7 @@ public:
                 continue;
             }
             /* loop over all inputs */
-            for(abs_type j=0; j<M; j++) { //M
-                //                std::cout << "j= "<< j << endl;
+            for(abs_type j=0; j<M; j++) {
                 out_of_domain[i*M+j]=false;
                 /* get center x of cell */
                 m_state_alphabet.itox(i,x);
@@ -1341,11 +1103,6 @@ public:
                 m_input_alphabet.itox(j,u);
                 /* integrate system and radius growth bound */
                 /* the result is stored in x and r */
-                //radius_post(r,x,u);
-                //system_post(x,u);   // <---------- mst
-                
-                //                ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage, funcExpre);
-                //                mstom::zonotope Z = ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage, funcExpre);
                 countavg++;
                 TicToc timet;
                 timet.tic();
@@ -1356,8 +1113,7 @@ public:
                  * [lb[0]; ub[0]] x .... x [lb[dim-1]; ub[dim-1]]
                  * covers attainable set
                  */
-                //                abs_type npostTrue; // mst
-                abs_type npost=1;
+                 abs_type npost=1;
                 for(int k=0; k<dim; k++) {
                     /* check for out of bounds */
                     double left = x[k]-r[k]-m_z[k];
@@ -1377,8 +1133,6 @@ public:
                     npost*=no[k];
                     cc[k]=0;
                 }
-                //                npostTrue = npost;    // mst
-                //                cout<< "\nnpost, npostTrue = "<< npost << "  " << npostTrue << endl;
                 corner_IDs[i*(2*M)+2*j]=0;
                 corner_IDs[i*(2*M)+2*j+1]=0;
                 if(out_of_domain[i*M+j])
@@ -1396,81 +1150,33 @@ public:
                             cc[l+1]++;
                         }
                     }
-                    /* store id's of lower-left and upper-right cell */     // mst: shifted few lines up
+                    /* store id's of lower-left and upper-right cell */     
                     if(k==0)
                         corner_IDs[i*(2*M)+2*j]=q;
                     if(k==npost-1)
                         corner_IDs[i*(2*M)+2*j+1]=q;
                     
-                    //                    m_state_alphabet.itox(q,x); //mst
-                    //                    mstom::zonotope Zcell = mstom::zonotope(x,eta,dim);
-                    //                    mstom::zonotope Zsub = Z - Zcell;
-                    //                    //ifOriginInZonotope(Zsub);
-                    //                    tribool tb = ifOriginInZonotope(Zsub);
-                    //
-                    //                    std::vector<mstom::zonotope> plotsto;
-                    //                    plotsto.push_back(Zcell);
-                    //                    plotsto.push_back(Z);
-                    //                    //plotsto.push_back(Zsub);
-                    //plot(plotsto, 1, 2);
-                    //cout << "\ntb = "<< tb << ", Is tb == indetermin: "<< (tb != true && tb != false) << endl;
-                    //                    if(tb == false)
-                    //                    {
-                    //                        not_a_post.push_front(true) ;
-                    //                        npostTrue = npostTrue - 1 ;
-                    //                        continue;
-                    //                    }
-                    //                    else if(tb == true)
-                    //                        not_a_post.push_front(false);
-                    //                    else         // <-------------------------------
-                    //                    {
-                    //                        // indeterminate
-                    //                     }
-                    
                     /* (i,j,q) is a transition */
                     /* increment number of pres for (q,j) */
                     transition_function.m_no_pre[q*M+j]++;
-                    //                    /* (i,j,q) is a transition */
-                    //                    /* increment number of pres for (q,j) */
-                    //                    transition_function.m_no_pre[q*M+j]++;
-                    //                    /* store id's of lower-left and upper-right cell */
-                    //                    if(k==0)
-                    //                        corner_IDs[i*(2*M)+2*j]=q;
-                    //                    if(k==npost-1)
-                    //                        corner_IDs[i*(2*M)+2*j+1]=q;
                 }
-                //                if(npost != npostTrue)
-                //                    cout<< "\nnpost, npostTrue = "<< npost << "  " << npostTrue << endl;
                 /* increment number of transitions by number of post */
                 T+=npost;
-                //                T+=npostTrue;   //mst
                 transition_function.m_no_post[i*M+j]=npost;
-                //                transition_function.m_no_post[i*M+j]=npostTrue;   // mst
-                
-                //                if(j==50)
-                //                    break;  //----------------
-            }
+              }
             /* print progress */
             if(m_verbose) {
                 if(counter==0)
                     std::cout << "1st loop: ";
             }
             progress(i,N,counter);
-            
-            //            if(i==10)
-            //                break;
-        }
-        //        not_a_post.reverse();
-        
-        //mstom::plot(L_hat_storage);
-        
-        
-        /* compute pre_ptr */
+         }
+         /* compute pre_ptr */
         abs_ptr_type sum=0;
         for(abs_type i=0; i<N; i++) {
             for(abs_type j=0; j<M; j++) {
-                sum+=transition_function.m_no_pre[i*M+j];   // mst: ??----------
-                transition_function.m_pre_ptr[i*M+j]=sum;   // mst: ??----------
+                sum+=transition_function.m_no_pre[i*M+j];   
+                transition_function.m_pre_ptr[i*M+j]=sum;  
             }
         }
         /* allocate memory for pre list */
@@ -1516,14 +1222,8 @@ public:
                             cc[l+1]++;
                         }
                     }
-                    
-                    //                    bool valA = not_a_post.front(); // mst
-                    //                    not_a_post.pop_front();
-                    //                    if(valA)    // not_a_post is true => q is not a post
-                    //                        continue;
-                    
                     /* (i,j,q) is a transition */
-                    transition_function.m_pre[--transition_function.m_pre_ptr[q*M+j]]=i;    // mst: ??
+                    transition_function.m_pre[--transition_function.m_pre_ptr[q*M+j]]=i;    
                 }
             }
             /* print progress */
@@ -1543,10 +1243,8 @@ public:
         // MST: to get intersection with zonotope
         /* number of cells */
         abs_type N=m_state_alphabet.size();
-        //abs_type N=50;
-        /* number of inputs */
+         /* number of inputs */
         abs_type M=m_input_alphabet.size();
-        //abs_type M=1;
         /* number of transitions (to be computed) */
         abs_ptr_type T=0;
         /* state space dimension */
@@ -1580,7 +1278,7 @@ public:
         /* init in transition_function the members no_pre, no_post, pre_ptr */
         transition_function.init_infrastructure(N,M);
         /* lower-left & upper-right corners of hyper rectangle of cells that cover attainable set */
-        std::unique_ptr<abs_type[]> corner_IDs(new abs_type[N*M*2]());  // <--- ?mst why multiplication by 2
+        std::unique_ptr<abs_type[]> corner_IDs(new abs_type[N*M*2]());  
         /* is post of (i,j) out of domain ? */
         std::unique_ptr<bool[]> out_of_domain(new bool[N*M]());
         
@@ -1592,11 +1290,8 @@ public:
          * corner_IDs[i*M+j][1] = upper-right cell index of over-approximation of attainable set
          */
         /* loop over all cells */
-        std::vector<double> L_hat_storage;   //-----------------
-        //        mstom::zonotope Z;
-//        int count_iteration = 0;
-        for(abs_type i=0; i<N; i++) { //N
-            //std::cout<<"cell no = " << i << endl;
+        std::vector<double> L_hat_storage;   
+        for(abs_type i=0; i<N; i++) {
             /* is i an element of the avoid symbols ? */
             if(avoid(i)) {
                 for(abs_type j=0; j<M; j++) {
@@ -1605,8 +1300,7 @@ public:
                 continue;
             }
             /* loop over all inputs */
-            for(abs_type j=0; j<M; j++) { //M
-                //                std::cout << "j= "<< j << endl;
+            for(abs_type j=0; j<M; j++) { 
                 out_of_domain[i*M+j]=false;
                 /* get center x of cell */
                 m_state_alphabet.itox(i,x);
@@ -1617,17 +1311,13 @@ public:
                 m_input_alphabet.itox(j,u);
                 /* integrate system and radius growth bound */
                 /* the result is stored in x and r */
-                //radius_post(r,x,u);
-                //system_post(x,u);   // <---------- mst
-                
-                //                ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage, funcExpre);
                 mstom::zonotope Z = ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage, funcExpre);
                 /* determine the cells which intersect with the attainable set:
                  * discrete hyper interval of cell indices
                  * [lb[0]; ub[0]] x .... x [lb[dim-1]; ub[dim-1]]
                  * covers attainable set
                  */
-                abs_type npostTrue; // mst
+                abs_type npostTrue; 
                 abs_type npost=1;
                 for(int k=0; k<dim; k++) {
                     /* check for out of bounds */
@@ -1649,7 +1339,6 @@ public:
                     cc[k]=0;
                 }
                 npostTrue = npost;
-                //                cout<< "\nnpost, npostTrue = "<< npost << "  " << npostTrue << endl;
                 corner_IDs[i*(2*M)+2*j]=0;
                 corner_IDs[i*(2*M)+2*j+1]=0;
                 if(out_of_domain[i*M+j])
@@ -1667,38 +1356,25 @@ public:
                             cc[l+1]++;
                         }
                     }
-                    /* store id's of lower-left and upper-right cell */     // mst: shifted few lines up
+                    /* store id's of lower-left and upper-right cell */    
                     if(k==0)
                         corner_IDs[i*(2*M)+2*j]=q;
                     if(k==npost-1)
                         corner_IDs[i*(2*M)+2*j+1]=q;
                     
-                    m_state_alphabet.itox(q,x); //mst
+                    m_state_alphabet.itox(q,x); 
                     mstom::zonotope Zcell = mstom::zonotope(x,eta,dim);
                     mstom::zonotope Zsub = Z - Zcell;
-//                    tribool tb = ifOriginInZonotope(Zsub);
                     bool tb = isOriginInZonotope(Zsub);
-//                    cout << tb;
-                    
-//                    std::vector<mstom::zonotope> plotsto;
-//                    plotsto.push_back(Zcell);
-//                    plotsto.push_back(Z);
-//                    //plotsto.push_back(Zsub);
-//                    //plot(plotsto, 1, 2);
-//                    plot(plotsto, 1, 2, tb);
-                    
-                    //cout << "\ntb = "<< tb << ", Is tb == indetermin: "<< (tb != true && tb != false) << endl;
                     if(tb == false)
                     {
-                        
-                        //cout << tb;
                         not_a_post.push_front(true) ;
                         npostTrue = npostTrue - 1 ;
                         continue;
                     }
                     else if(tb == true)
                         not_a_post.push_front(false);
-                    else         // <-------------------------------
+                    else        
                     {
                         // indeterminate
                     }
@@ -1706,47 +1382,25 @@ public:
                     /* (i,j,q) is a transition */
                     /* increment number of pres for (q,j) */
                     transition_function.m_no_pre[q*M+j]++;
-                    //                    /* (i,j,q) is a transition */
-                    //                    /* increment number of pres for (q,j) */
-                    //                    transition_function.m_no_pre[q*M+j]++;
-                    //                    /* store id's of lower-left and upper-right cell */
-                    //                    if(k==0)
-                    //                        corner_IDs[i*(2*M)+2*j]=q;
-                    //                    if(k==npost-1)
-                    //                        corner_IDs[i*(2*M)+2*j+1]=q;
-                }
-                //                if(npost != npostTrue)
-                //                    cout<< "\nnpost, npostTrue = "<< npost << "  " << npostTrue << endl;
-                /* increment number of transitions by number of post */
-                //                T+=npost;
-                T+=npostTrue;   //mst
-                //                transition_function.m_no_post[i*M+j]=npost;
-                transition_function.m_no_post[i*M+j]=npostTrue;
-                
-                //                if(j==50)
-                //                    break;  //----------------
-            }
+                 }
+                 /* increment number of transitions by number of post */
+                 T+=npostTrue;   //mst
+                 transition_function.m_no_post[i*M+j]=npostTrue;
+              }
             /* print progress */
             if(m_verbose) {
                 if(counter==0)
                     std::cout << "1st loop: ";
             }
             progress(i,N,counter);
-            
-            //            if(i==10)
-            //                break;
-        }
+          }
         not_a_post.reverse();
-        
-        //mstom::plot(L_hat_storage);
-        
-        
         /* compute pre_ptr */
         abs_ptr_type sum=0;
         for(abs_type i=0; i<N; i++) {
             for(abs_type j=0; j<M; j++) {
-                sum+=transition_function.m_no_pre[i*M+j];   // mst: ??----------
-                transition_function.m_pre_ptr[i*M+j]=sum;   // mst: ??----------
+                sum+=transition_function.m_no_pre[i*M+j];   
+                transition_function.m_pre_ptr[i*M+j]=sum;   
             }
         }
         /* allocate memory for pre list */
@@ -1793,13 +1447,13 @@ public:
                         }
                     }
                     
-                    bool valA = not_a_post.front(); // mst
+                    bool valA = not_a_post.front(); 
                     not_a_post.pop_front();
                     if(valA)    // not_a_post is true => q is not a post
                         continue;
                     
                     /* (i,j,q) is a transition */
-                    transition_function.m_pre[--transition_function.m_pre_ptr[q*M+j]]=i;    // mst: ??
+                    transition_function.m_pre[--transition_function.m_pre_ptr[q*M+j]]=i;    
                 }
             }
             /* print progress */
