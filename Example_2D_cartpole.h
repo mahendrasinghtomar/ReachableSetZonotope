@@ -50,7 +50,7 @@ using abs_type = scots::abs_type;
 const double omega=1;
 const double ga=0.0125;
 
-double Method = 2; // 1:growth bound, 2: zonotope
+double Method = 1; // 1:growth bound, 2: zonotope
 
 template<typename Tx, typename Tu>
 Tx funcLj_system(Tx x, Tu u, Tx xx){
