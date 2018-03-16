@@ -1,5 +1,3 @@
-// edited 15 Jan 18
-// F_tilde: if origin contained then F_tilde = 0
 /*
  * cartpole.cc
  *
@@ -50,20 +48,16 @@ using abs_type = scots::abs_type;
 
 /* system parameters */
 const double omega=1;
-//const double ga=0.125;    // -------------
 const double ga=0.0125;
 
-// ########################
 double Method = 2; // 1:growth bound, 2: zonotope
 
 template<typename Tx, typename Tu>
 Tx funcLj_system(Tx x, Tu u, Tx xx){
     xx[0] = x[1];
-    xx[1] = -omega*omega*(sin(x[0])+u[0]*cos(x[0]))-2*ga*x[1];   //06 Feb 18
+    xx[1] = -omega*omega*(sin(x[0])+u[0]*cos(x[0]))-2*ga*x[1];   
     return xx;
 }
-
-
 
 /* we integrate the cart pole system  (the result is stored in x)  */
 auto  sys = [](state_type &x, const input_type &u) noexcept {
@@ -99,8 +93,7 @@ int main() {
     state_type s_lb={{ 0.5*M_PI, -1}};
     state_type s_ub={{ 1.5*M_PI,  1}};
     /* grid node distance diameter */
-    //state_type s_eta={{.2,.2,.2,.2}};
-    state_type s_eta={{.05,.1}};
+     state_type s_eta={{.05,.1}};
     /* construct SymbolicSet for the input space */
     input_type i_lb={{-3}};
     input_type i_ub={{3}};
@@ -123,8 +116,8 @@ int main() {
     tt.tic();
     if(Method == 1)
     {
-//        abs.compute_gb(tf,sys, radius);
-        abs.compute_gbLu(tf,sys,tau);
+//        abs.compute_gb(tf,sys, radius);   // L(u) manually supplied
+        abs.compute_gbLu(tf,sys,tau);   // automatic growth bound
     }
     else
     {
