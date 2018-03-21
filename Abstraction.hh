@@ -403,7 +403,6 @@ public:
           scots::runge_kutta_fixed4(rhs,r,u,dim,tau);
       };
 
-      double* LuStore = new double[M*dim*dim];
     /*
      * first loop: compute corner_IDs:
      * corner_IDs[i*M+j][0] = lower-left cell index of over-approximation of attainable set 
@@ -436,8 +435,8 @@ public:
           timet2.tic();     
           
           double Lu[dim*dim];
-          computeLu(x,u,r,tau,dim, dimInput, Lu);    //Mtau using array
-          radius_post2b(r,x,u,Lu);  // Lu as double*
+          computeLu(x,u,r,tau,dim, dimInput, Lu);    //Mtau
+          radius_post2b(r,x,u,Lu);
           system_post(x,u);
           
           ttimeavg += timet2.tocMST();  
@@ -504,7 +503,6 @@ public:
       }
       progress(i,N,counter);
     }
-      delete[] LuStore;
       
     /* compute pre_ptr */
     abs_ptr_type sum=0;
@@ -785,9 +783,9 @@ public:
         std:: cout << "% of time for L_hat computation = " << LHatTimeavg * 100 / ttimeavg << endl;
     }
        
-    template<class F1, class F2, class F4, class F3=decltype(params::avoid_abs)>
-    void compute_gb5(TransitionFunction& transition_function, const double tau,F1& system_post,
-                     F2& radius_post,   F4& funcExpre, F3& avoid=params::avoid_abs) {
+    template<class F1, class F2, class F3=decltype(params::avoid_abs)>
+    void compute_gb5(TransitionFunction& transition_function, const double tau, F1& system_post,
+                     F2& radius_post, F3& avoid=params::avoid_abs) {
 //         to plot both growth bound and zonotope sets
         // MST: intersection after taking interval hull of the zonotope
         
@@ -874,7 +872,7 @@ public:
                 countavg++;
                 TicToc timet;
                 timet.tic();
-                mstom::zonotope Zzo = ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage, funcExpre);
+                mstom::zonotope Zzo = ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage);
                 ttimeavg += timet.tocMST();               
                 for(int i=0;i<dim;i++)
                 {
@@ -1019,227 +1017,9 @@ public:
         std:: cout << "% of time for L_hat computation = " << LHatTimeavg * 100 / ttimeavg << endl;
     }
     
-    template<class F4, class F3=decltype(params::avoid_abs)>
-    void compute_gb4(TransitionFunction& transition_function, const double tau, F4& funcExpre, F3& avoid=params::avoid_abs) {
-        // MST: global Kprime
-        
-        /* number of cells */
-        abs_type N=m_state_alphabet.size();
-        //abs_type N=50;
-        /* number of inputs */
-        abs_type M=m_input_alphabet.size();
-        //abs_type M=1;
-        /* number of transitions (to be computed) */
-        abs_ptr_type T=0;
-        /* state space dimension */
-        int dim=m_state_alphabet.get_dim();
-        int dimInput = m_input_alphabet.get_dim();
-        
-        /* for display purpose */
-        abs_type counter=0;
-        /* some grid information */
-        std::vector<abs_type> NN=m_state_alphabet.get_nn();
-        /* variables for managing the post */
-        std::vector<abs_type> lb(dim);  /* lower-left corner */
-        std::vector<abs_type> ub(dim);  /* upper-right corner */
-        std::vector<abs_type> no(dim);  /* number of cells per dim */
-        std::vector<abs_type> cc(dim);  /* coordinate of current cell in the post */
-        /* radius of hyper interval containing the attainable set */
-        state_type eta;
-        state_type r;
-        /* state and input variables */
-        state_type x;
-        input_type u;
-        /* for out of bounds check */
-        state_type lower_left;
-        state_type upper_right;
-        /* copy data from m_state_alphabet */
-        for(int i=0; i<dim; i++) {
-            eta[i]=m_state_alphabet.get_eta()[i];
-            lower_left[i]=m_state_alphabet.get_lower_left()[i];
-            upper_right[i]=m_state_alphabet.get_upper_right()[i];
-        }
-        
-        state_type inp_lower_left, inp_upper_right;
-        for(int i=0; i<dimInput; i++) {
-            inp_lower_left[i]=m_input_alphabet.get_lower_left()[i];
-            inp_upper_right[i]=m_input_alphabet.get_upper_right()[i];
-        }
-        // MZ_L_hat: the zonotope over which hessian to be computed
-        Eigen::VectorXd gL_hat = computeM(tau, lower_left, upper_right, inp_lower_left, inp_upper_right);
-        cout << "\ngL_hat \n" << gL_hat << endl << endl;
-        
-        
-        /* init in transition_function the members no_pre, no_post, pre_ptr */
-        transition_function.init_infrastructure(N,M);
-        /* lower-left & upper-right corners of hyper rectangle of cells that cover attainable set */
-        std::unique_ptr<abs_type[]> corner_IDs(new abs_type[N*M*2]());  // <--- ?mst why multiplication by 2
-        /* is post of (i,j) out of domain ? */
-        std::unique_ptr<bool[]> out_of_domain(new bool[N*M]());
-         /*
-         * first loop: compute corner_IDs:
-         * corner_IDs[i*M+j][0] = lower-left cell index of over-approximation of attainable set
-         * corner_IDs[i*M+j][1] = upper-right cell index of over-approximation of attainable set
-         */
-        /* loop over all cells */
-        std::vector<double> L_hat_storage;   
-        for(abs_type i=0; i<N; i++) {
-             /* is i an element of the avoid symbols ? */
-            if(avoid(i)) {
-                for(abs_type j=0; j<M; j++) {
-                    out_of_domain[i*M+j]=true;
-                }
-                continue;
-            }
-            /* loop over all inputs */
-            for(abs_type j=0; j<M; j++) {
-                out_of_domain[i*M+j]=false;
-                /* get center x of cell */
-                m_state_alphabet.itox(i,x);
-                /* cell radius (including measurement errors) */
-                for(int k=0; k<dim; k++)
-                    r[k]=eta[k]/2.0+m_z[k];
-                /* current input */
-                m_input_alphabet.itox(j,u);
-                /* integrate system and radius growth bound */
-                /* the result is stored in x and r */
-                countavg++;
-                TicToc timet;
-                timet.tic();
-                ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage, funcExpre);
-                ttimeavg += timet.tocMST();
-                /* determine the cells which intersect with the attainable set:
-                 * discrete hyper interval of cell indices
-                 * [lb[0]; ub[0]] x .... x [lb[dim-1]; ub[dim-1]]
-                 * covers attainable set
-                 */
-                 abs_type npost=1;
-                for(int k=0; k<dim; k++) {
-                    /* check for out of bounds */
-                    double left = x[k]-r[k]-m_z[k];
-                    double right = x[k]+r[k]+m_z[k];
-                    if(left <= lower_left[k]-eta[k]/2.0  || right >= upper_right[k]+eta[k]/2.0)  {
-                        out_of_domain[i*M+j]=true;
-                        break;
-                    }
-                    
-                    /* integer coordinate of lower left corner of post */
-                    lb[k] = static_cast<abs_type>((left-lower_left[k]+eta[k]/2.0)/eta[k]);
-                    /* integer coordinate of upper right corner of post */
-                    ub[k] = static_cast<abs_type>((right-lower_left[k]+eta[k]/2.0)/eta[k]);
-                    /* number of grid points in the post in each dimension */
-                    no[k]=(ub[k]-lb[k]+1);
-                    /* total number of post */
-                    npost*=no[k];
-                    cc[k]=0;
-                }
-                corner_IDs[i*(2*M)+2*j]=0;
-                corner_IDs[i*(2*M)+2*j+1]=0;
-                if(out_of_domain[i*M+j])
-                    continue;
-                
-                /* compute indices of post */
-                for(abs_type k=0; k<npost; k++) {
-                    abs_type q=0;
-                    for(int l=0; l<dim; l++)
-                        q+=(lb[l]+cc[l])*NN[l];
-                    cc[0]++;
-                    for(int l=0; l<dim-1; l++) {
-                        if(cc[l]==no[l]) {
-                            cc[l]=0;
-                            cc[l+1]++;
-                        }
-                    }
-                    /* store id's of lower-left and upper-right cell */     
-                    if(k==0)
-                        corner_IDs[i*(2*M)+2*j]=q;
-                    if(k==npost-1)
-                        corner_IDs[i*(2*M)+2*j+1]=q;
-                    
-                    /* (i,j,q) is a transition */
-                    /* increment number of pres for (q,j) */
-                    transition_function.m_no_pre[q*M+j]++;
-                }
-                /* increment number of transitions by number of post */
-                T+=npost;
-                transition_function.m_no_post[i*M+j]=npost;
-              }
-            /* print progress */
-            if(m_verbose) {
-                if(counter==0)
-                    std::cout << "1st loop: ";
-            }
-            progress(i,N,counter);
-         }
-         /* compute pre_ptr */
-        abs_ptr_type sum=0;
-        for(abs_type i=0; i<N; i++) {
-            for(abs_type j=0; j<M; j++) {
-                sum+=transition_function.m_no_pre[i*M+j];   
-                transition_function.m_pre_ptr[i*M+j]=sum;  
-            }
-        }
-        /* allocate memory for pre list */
-        transition_function.init_transitions(T);
-        
-        /* second loop: fill pre array */
-        counter=0;
-        for(abs_type i=0; i<N; i++) {
-            /* loop over all inputs */
-            for(abs_type j=0; j<M; j++) {
-                /* is x an element of the overflow symbols ? */
-                if(out_of_domain[i*M+j])
-                    continue;
-                /* extract lower-left and upper-bound points */
-                abs_type k_lb=corner_IDs[i*2*M+2*j];
-                abs_type k_ub=corner_IDs[i*2*M+2*j+1];
-                abs_type npost=1;
-                
-                /* cell idx to coordinates */
-                for(int k=dim-1; k>=0; k--) {
-                    /* integer coordinate of lower left corner */
-                    lb[k]=k_lb/NN[k];
-                    k_lb=k_lb-lb[k]*NN[k];
-                    /* integer coordinate of upper right corner */
-                    ub[k]=k_ub/NN[k];
-                    k_ub=k_ub-ub[k]*NN[k];
-                    /* number of grid points in each dimension in the post */
-                    no[k]=(ub[k]-lb[k]+1);
-                    /* total no of post of (i,j) */
-                    npost*=no[k];
-                    cc[k]=0;
-                    
-                }
-                
-                for(abs_type k=0; k<npost; k++) {
-                    abs_type q=0;
-                    for(int l=0; l<dim; l++)
-                        q+=(lb[l]+cc[l])*NN[l];
-                    cc[0]++;
-                    for(int l=0; l<dim-1; l++) {
-                        if(cc[l]==no[l]) {
-                            cc[l]=0;
-                            cc[l+1]++;
-                        }
-                    }
-                    /* (i,j,q) is a transition */
-                    transition_function.m_pre[--transition_function.m_pre_ptr[q*M+j]]=i;    
-                }
-            }
-            /* print progress */
-            if(m_verbose) {
-                if(counter==0)
-                    std::cout << "2nd loop: ";
-            }
-            progress(i,N,counter);
-        }
-        std::cout << "total average time = " << ttimeavg/countavg << endl;
-        std::cout << "L_hat average time = " << LHatTimeavg/countavg << endl;
-        std:: cout << "% of time for L_hat computation = " << LHatTimeavg * 100 / ttimeavg << endl;
-    }
     
-    template<class F4, class F3=decltype(params::avoid_abs)>
-    void compute_gb3(TransitionFunction& transition_function, const double tau, F4& funcExpre, F3& avoid=params::avoid_abs) {
+    template<class F3=decltype(params::avoid_abs)>
+    void compute_gb3(TransitionFunction& transition_function, const double tau, F3& avoid=params::avoid_abs) {
         // MST: to get intersection with zonotope
         /* number of cells */
         abs_type N=m_state_alphabet.size();
@@ -1311,7 +1091,7 @@ public:
                 m_input_alphabet.itox(j,u);
                 /* integrate system and radius growth bound */
                 /* the result is stored in x and r */
-                mstom::zonotope Z = ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage, funcExpre);
+                mstom::zonotope Z = ReachableSet(dim, dimInput, tau, r, x, u, L_hat_storage);
                 /* determine the cells which intersect with the attainable set:
                  * discrete hyper interval of cell indices
                  * [lb[0]; ub[0]] x .... x [lb[dim-1]; ub[dim-1]]
