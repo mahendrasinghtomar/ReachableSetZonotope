@@ -4,13 +4,7 @@
  * created: Feb 2017
  *  author: rungger
  */
-#define PROFIL_VNODE
-#define MAXORDER 50
-#include "vnode.h"
-#include "fadiff.h"
-#include "badiff.h"
 #define  SCOTS_BDD
-#define Global_L_hat 1  // 1 if global set for hessian computation, else 0
 
 #include <iostream>
 #include <array>
@@ -50,7 +44,7 @@ using abs_type = scots::abs_type;
 const double omega=1;
 const double ga=0.0125;
 
-double Method = 1; // 1:growth bound, 2: zonotope
+double Method = 2; // 1:growth bound, 2: zonotope
 
 template<typename Tx, typename Tu>
 Tx funcLj_system(Tx x, Tu u, Tx xx){
@@ -121,9 +115,9 @@ int main() {
     }
     else
     {
-//                abs.compute_gb3(tf, tau, funcExpre);    // for 2D zonotope intersection with grid
-        abs.compute_gb2(tf, tau);  // for zonotope: intersection with interval hull of Z
-        //    abs.compute_gb5(tf, tau, sys, radius, funcExpre); // to plot both growth bound and zonotope reachable sets
+//                abs.compute_gb3(tf, tau);    // for 2D zonotope intersection with grid
+//        abs.compute_gb2(tf, tau);  // for zonotope: intersection with interval hull of Z
+            abs.compute_gb5(tf, tau, sys, radius); // to plot both growth bound and zonotope reachable sets
     }
     tt.toc();
     
