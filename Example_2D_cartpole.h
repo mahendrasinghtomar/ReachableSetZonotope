@@ -133,13 +133,9 @@ int main() {
         double c[state_dim];
         c[0]= s_eta[0]/2.0+1e-10;
         c[1]= s_eta[1]/2.0+1e-10;
-        //c[2]= s_eta[2]/2.0+1e-10;
-        //c[3]= s_eta[3]/2.0+1e-10;
-
+ 
         if ((s_lb[0]+c[0]) <= x[0] && x[0] <= (s_ub[0]-c[0]) &&
             (s_lb[1]+c[1]) <= x[1] && x[1] <= (s_ub[1]-c[1]) ){
-            //(s_lb[2]+c[2]) <= x[2] && x[2] <= (s_ub[2]-c[2]) &&
-            //(s_lb[3]+c[3]) <= x[3] && x[3] <= (s_ub[3]-c[3]) ) {
             return true;
         }
         return false;
@@ -195,14 +191,10 @@ int main() {
         double c[state_dim];
         c[0]= s_eta[0]/2.0+1e-10;
         c[1]= s_eta[1]/2.0+1e-10;
-        //c[2]= s_eta[2]/2.0+1e-10;
-        //c[3]= s_eta[3]/2.0+1e-10;
-
+ 
         if ((s_lb[0]+c[0]) <= x[0] && x[0] <= (s_ub[0]-c[0]) &&
             (s_lb[1]+c[1]) <= x[1] && x[1] <= (s_ub[1]-c[1]) ){
-            //(s_lb[2]+c[2]) <= x[2] && x[2] <= (s_ub[2]-c[2]) &&
-            // (s_lb[3]+c[3]) <= x[3] && x[3] <= (s_ub[3]-c[3]) ) {
-            return true;
+             return true;
         }
         return false;
     };
