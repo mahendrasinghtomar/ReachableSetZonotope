@@ -2,8 +2,7 @@
 #define ReachableSet_h
 
 //
-//  Created by FMLAB4 on 28.11.17.
-//  Copyright © 2017 FMLAB4. All rights reserved.
+//  Mahendra Singh Tomar
 //
 
 #define PROFIL_VNODE
@@ -266,7 +265,7 @@ namespace mstom {
         double norm_rA = rA.cwiseAbs().rowwise().sum().maxCoeff();
         double temp = pow(norm_rA,p+1) / factorial(p+1);
         double bound = temp / (1-epsilone);
-        while(bound > pow(10,-5))  
+        while(bound > pow(10,-5))
         {
             p++;
             epsilone = norm_rA/(p+2);
@@ -962,7 +961,11 @@ Eigen::VectorXd compute_L_Hat2(mstom::zonotope Rtotal1, Eigen::VectorXd x_bar, i
 
 mstom::zonotope compute_Rerr_bar(int state_dim, mstom::intervalMatrix& Data_interm, mstom::zonotope& Rhomt, Eigen::VectorXd x_bar, Eigen::VectorXd f_bar, Eigen::VectorXd u, Eigen::VectorXd& L_hat, int LinErrorMethod, mstom::zonotope& F_tilde_f_bar){
     mstom::zonotope Rhom;
-    Eigen::VectorXd appliedError = L_hat_previous;  // 06 March 18
+    Eigen::VectorXd appliedError;
+    if(L_hat_previous.rows() == 0)
+       appliedError  = Eigen::MatrixXd::Constant(state_dim,1,0);
+    else
+        appliedError = L_hat_previous;
     
     mstom::zonotope Verror, RerrAE, Rtotal1;
     Eigen::VectorXd trueError;
@@ -1340,7 +1343,6 @@ mstom::zonotope ReachableSet(int dim, int dimInput, const double tau, state_type
     Eigen::VectorXd c(state_dim);  // c = centre of the cell
     Eigen::VectorXd ss_eta(state_dim); // state space eta
     Eigen::VectorXd u(input_dim);  //the selected value of input
-    //c << 3,0;
     for(int i=0;i<state_dim;i++)
     {
         c(i) = x[i];
