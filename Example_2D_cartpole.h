@@ -44,7 +44,7 @@ using abs_type = scots::abs_type;
 const double omega=1;
 const double ga=0.0125;
 
-double Method = 2; // 1:growth bound, 2: zonotope
+double Method = 1; // 1:growth bound, 2: zonotope
 
 template<typename Tx, typename Tu>
 Tx funcLj_system(Tx x, Tu u, Tx xx){
@@ -108,12 +108,12 @@ int main() {
     scots::Abstraction<state_type,input_type> abs(ss,is);
     
     tt.tic();
-    if(Method == 1)
+    if(Method == 1) // Growth bound
     {
 //        abs.compute_gb(tf,sys, radius);   // L(u) manually supplied
         abs.compute_gbLu(tf,sys,tau);   // automatic growth bound
     }
-    else
+    else    // Zonotope
     {
 //                abs.compute_gb3(tf, tau);    // for 2D zonotope intersection with grid
 //        abs.compute_gb2(tf, tau);  // for zonotope: intersection with interval hull of Z
@@ -174,11 +174,13 @@ int main() {
     BDD TF;
     tt.tic();
     size_t no_trans;
-    if(Method == 1)
-        TF = sym_model.compute_gb(manager,sys,radius,no_trans);
-    //BDD TF = sym_model.compute_gb(manager,sys,radius,no_trans);
-    else
-        TF = sym_model.compute_gb(manager, no_trans, tau, funcExpre);
+    if(Method == 1) // Growth bound
+    {
+ //        TF = sym_model.compute_gb(manager,sys,radius, no_trans);  // manual L(u)
+        TF = sym_model.compute_gbLu(manager,sys,tau, no_trans); // automatic growth bound
+    }
+     else   // Zonotope
+        TF = sym_model.compute_gb(manager, no_trans, tau); // for zonotope: intersection with interval hull of Z
     tt.toc();
     
     std::cout << "No of Transitions " << no_trans  << "\n";
@@ -233,11 +235,7 @@ int main() {
     
     std::cout << "Winning domain size: " << ss_pre.get_size(manager,X) << std::endl;
     
-    
-    std::cout << " controller size = " << sym_model.compute_controller_size(X) << std::endl;
-    
-    
-    /* symbolic set for the controller */
+     /* symbolic set for the controller */
     scots::SymbolicSet controller(ss_pre,ss_input);
     std::cout << "\nWrite controller to file \n";
     if(write_to_file(manager,controller,X,"cartpole"))
