@@ -1,7 +1,3 @@
-//
-//  Created by FMLAB4 on 09.12.17.
-//  Copyright © 2017 FMLAB4. All rights reserved.
-//
 
 #ifndef UsingGnuplot_h
 #define UsingGnuplot_h
